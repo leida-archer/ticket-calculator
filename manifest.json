@@ -1,6 +1,6 @@
 {
-  "name": "Event Ticket Calculator",
-  "short_name": "Tickets",
+  "name": "Music Event Financial Planner",
+  "short_name": "Planner",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#111111",

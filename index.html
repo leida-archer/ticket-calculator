@@ -8,16 +8,21 @@
 <meta name="theme-color" content="#111111">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Event Ticket Calculator</title>
+<title>Music Event Financial Planner</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, sans-serif; background: #111; color: #e0e0e0; padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); max-width: 520px; margin: 0 auto; }
+  body { font-family: -apple-system, sans-serif; background: #111; color: #e0e0e0; padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); margin: 0; }
+  .layout { display: flex; gap: 24px; max-width: 960px; margin: 0 auto; }
+  .col-left, .col-right { flex: 1; min-width: 0; }
+  .col-right { position: sticky; top: 24px; align-self: flex-start; }
   h1 { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #fff; }
   h2 { font-size: 14px; font-weight: 600; margin: 20px 0 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
   .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .row label { font-size: 14px; }
-  .row input[type=number] { width: 140px; padding: 6px 8px; background: #222; border: 1px solid #333; color: #fff; font-size: 14px; border-radius: 4px; text-align: right; -moz-appearance: textfield; }
-  .row input[type=date] { width: 160px; padding: 6px 8px; background: #222; border: 1px solid #333; color: #fff; font-size: 14px; border-radius: 4px; color-scheme: dark; }
+  .row input[type=number] { width: 70px; padding: 6px 8px; background: #222; border: 1px solid #333; color: #fff; font-size: 14px; border-radius: 4px; text-align: right; -moz-appearance: textfield; }
+  .currency-wrap { display: flex; align-items: center; gap: 4px; }
+  .currency-wrap .dollar { color: #666; font-size: 14px; }
+  .row input[type=date], .row input[type=time] { width: 160px; padding: 6px 8px; background: #222; border: 1px solid #333; color: #fff; font-size: 14px; border-radius: 4px; color-scheme: dark; }
   .row input::-webkit-outer-spin-button, .row input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .row input:focus { outline: none; border-color: #666; }
   .artist { border-left: 2px solid #333; padding-left: 12px; margin-bottom: 12px; }
@@ -30,17 +35,19 @@
   .add-btn:hover { color: #fff; border-color: #666; }
   .bar-toggle { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; margin-bottom: 4px; cursor: pointer; font-size: 14px; color: #aaa; }
   .bar-toggle:hover { color: #ccc; }
-  .bar-toggle .arrow { font-size: 10px; margin-right: 6px; transition: transform 0.2s; }
+  .bar-toggle .arrow { font-size: 10px; margin-right: 6px; transition: transform 0.2s; display: inline-block; }
   .bar-toggle .arrow.open { transform: rotate(90deg); }
   .bar-fields { overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
-  .bar-fields.open { max-height: 300px; }
+  .bar-fields.open { max-height: 2000px; }
   .slider-row { margin-bottom: 8px; }
   .slider-row .top { display: flex; justify-content: space-between; margin-bottom: 4px; }
   .slider-row label { font-size: 14px; }
   .slider-row span { font-size: 14px; font-weight: 600; color: #fff; }
   .slider-row input[type=range] { width: 100%; accent-color: #888; }
   .note { font-size: 12px; color: #777; margin-top: 2px; }
-  .results { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 16px; margin-top: 16px; }
+  .card { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+  .card h2:first-child { margin-top: 0; }
+  .results { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 16px; }
   .results .line { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
   .results .line.total { font-weight: 700; font-size: 16px; color: #fff; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; }
   .results .line.ticket { font-weight: 700; font-size: 20px; color: #4f4; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; }
@@ -52,53 +59,99 @@
   .bar-ok { background: #1a2e1a; color: #6c6; }
   .bar-warn { background: #2e2a1a; color: #cc6; }
   .bar-bad { background: #2e1a1a; color: #c66; }
+  @media (max-width: 640px) {
+    .layout { flex-direction: column; }
+    .col-right { position: static; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Event Ticket Calculator</h1>
+<h1 style="max-width:960px;margin:0 auto 20px;">Music Event Financial Planner</h1>
+<div class="layout">
+<div class="col-left">
 
-<div class="row"><label>Event date</label><input type="date" id="eventDate" oninput="calc()"></div>
+<div class="card">
+<div class="row"><label>Event Date</label><input type="date" id="eventDate" oninput="calc()"></div>
 <div class="note" id="weeksNote"></div>
+<div class="row"><label>Start Time</label><input type="time" id="startTime" value="20:00" oninput="calc()"></div>
+<div class="row"><label>End Time</label><input type="time" id="endTime" value="02:00" oninput="calc()"></div>
+<div class="note" id="durationNote"></div>
+</div>
 
+<div class="card">
 <h2>Talent Costs</h2>
-<div id="artists"></div>
-<button class="add-btn" onclick="addArtist()">+ Add artist</button>
+<div id="lineupToggleWrap" style="display:none;">
+  <div class="bar-toggle" onclick="toggleLineup()"><span><span class="arrow" id="lineupArrow">&#9654;</span>Lineup</span><span id="talentFeeDisplay" style="font-size:13px;color:#777;min-width:84px;text-align:right;">$0.00</span></div>
+  <div class="bar-fields" id="lineupFields">
+    <div id="artists"></div>
+    <button class="add-btn" onclick="addArtist()" style="margin-bottom:8px;">+ Add artist</button>
+  </div>
+</div>
+<button class="add-btn" id="addArtistBtn" onclick="addFirstArtist()">+ Add artist</button>
 
 <h2>Production Costs</h2>
-<div class="row"><label>Production (AV + staff)</label><input type="number" id="production" value="0" min="0" step="50" oninput="calc()"></div>
-<div class="row"><label>Venue fee</label><input type="number" id="venue" value="0" min="0" step="50" oninput="calc()"></div>
-<div class="bar-toggle" onclick="toggleBar()"><span><span class="arrow" id="barArrow">&#9654;</span>Bar minimum (optional)</span></div>
-<div class="bar-fields" id="barFields">
-  <div class="row"><label>Bar minimum ($)</label><input type="number" id="barMin" value="0" min="0" step="100" oninput="calc()"></div>
-  <div class="row"><label>Avg spend per head ($)</label><input type="number" id="avgSpend" value="25" min="0" step="1" oninput="calc()"></div>
+<div class="row"><label>Venue Fee</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" id="venue" value="0" min="0" step="50" oninput="calc()"></span></div>
+<div class="row"><label>Bar Minimum</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" id="barMin" value="0" min="0" step="100" oninput="calc()"></span></div>
+<input type="hidden" id="staffingDisplay" value="0">
+<div id="staffToggleWrap" style="display:none;">
+  <div class="bar-toggle" onclick="toggleStaff()"><span><span class="arrow" id="staffArrow">&#9654;</span>Venue Staffing Fee</span><span id="staffingFeeDisplay" style="font-size:13px;color:#777;min-width:84px;text-align:right;">$0.00</span></div>
+  <div class="bar-fields" id="staffFields">
+    <div id="staffList"></div>
+    <button class="add-btn" onclick="addStaff()" style="margin-bottom:8px;">+ Add staff</button>
+  </div>
 </div>
-<div class="row"><label>Staffing fee</label><input type="number" id="staffingDisplay" value="0" min="0" readonly style="color:#777;cursor:default;"></div>
-<div class="bar-toggle" onclick="toggleStaff()"><span><span class="arrow" id="staffArrow">&#9654;</span>Staff breakdown</span></div>
-<div class="bar-fields" id="staffFields">
-  <div id="staffList"></div>
-  <button class="add-btn" onclick="addStaff()" style="margin-bottom:8px;">+ Add staff</button>
+<button class="add-btn" id="addStaffBtn" onclick="showStaffing()">+ Add staff</button>
+<div class="bar-toggle" onclick="toggleProd()"><span><span class="arrow" id="prodArrow">&#9654;</span>Production Hardware Cost</span><span id="prodHwDisplay" style="font-size:13px;color:#777;min-width:84px;text-align:right;">$0.00</span></div>
+<input type="hidden" id="productionDisplay" value="0">
+<div class="bar-fields" id="prodFields">
+  <div class="staff-entry">
+    <div class="row"><label>Audio Hardware</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" id="audioHw" value="0" min="0" step="50" oninput="calc()"></span></div>
+  </div>
+  <div class="staff-entry">
+    <div class="row"><label>Visual Hardware</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" id="visualHw" value="0" min="0" step="50" oninput="calc()"></span></div>
+  </div>
 </div>
+<div id="prodStaffToggleWrap" style="display:none;">
+  <div class="bar-toggle" onclick="toggleProdStaff()"><span><span class="arrow" id="prodStaffArrow">&#9654;</span>Production Staffing Cost</span><span id="prodStaffDisplay" style="font-size:13px;color:#777;min-width:84px;text-align:right;">$0.00</span></div>
+  <div class="bar-fields" id="prodStaffFields">
+    <div id="prodStaffList"></div>
+    <button class="add-btn" onclick="addProdStaff()" style="margin-bottom:8px;">+ Add staff</button>
+  </div>
+</div>
+<button class="add-btn" id="addProdStaffBtn" onclick="showProdStaff()">+ Add staff</button>
 
-<h2>Marketing</h2>
-<div class="row"><label>Paid ads / week</label><input type="number" id="ads" value="0" min="0" step="50" oninput="calc()"></div>
-<div class="row"><label>Content generation / week</label><input type="number" id="content" value="0" min="0" step="50" oninput="calc()"></div>
+<h2>Marketing Costs</h2>
+<div class="row"><label>Paid Ads / Week</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" id="ads" value="0" min="0" step="50" oninput="calc()"></span></div>
+<div class="row"><label>Content Generation / Week</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" id="content" value="0" min="0" step="50" oninput="calc()"></span></div>
 
-<h2>Tickets</h2>
-<div class="row"><label>Expected headcount</label><input type="number" id="headcount" value="100" min="1" step="10" oninput="calc()"></div>
+<h2>Attendance Goal</h2>
+<div class="row"><label>Expected Headcount</label><input type="number" id="headcount" value="100" min="1" step="10" oninput="calc()"></div>
 
 <div class="slider-row" style="margin-top: 12px;">
-  <div class="top"><label>Profit margin</label><span id="marginLabel">20%</span></div>
+  <div class="top"><label>Profit Margin</label><span id="marginLabel">20%</span></div>
   <input type="range" id="margin" min="0" max="200" value="20" step="1" oninput="calc()">
 </div>
+</div>
+</div>
 
+<div class="col-right">
 <div class="results" id="results"></div>
+</div>
+</div>
 
 <script>
 let artistId = 0;
 const artists = [];
 let staffId = 0;
 const staffMembers = [];
+
+function addFirstArtist() {
+  document.getElementById('lineupToggleWrap').style.display = '';
+  document.getElementById('addArtistBtn').style.display = 'none';
+  if (!document.getElementById('lineupFields').classList.contains('open')) toggleLineup();
+  addArtist();
+}
 
 function addArtist() {
   const id = artistId++;
@@ -108,11 +161,11 @@ function addArtist() {
   div.id = 'artist-' + id;
   div.innerHTML =
     '<div class="artist-header">' +
-      '<input type="text" placeholder="Artist name" oninput="calc()">' +
+      '<input type="text" placeholder="Artist Name" oninput="calc()">' +
       '<button class="remove-btn" onclick="removeArtist(' + id + ')">&#10005;</button>' +
     '</div>' +
-    '<div class="row"><label>Talent fee</label><input type="number" value="0" min="0" step="50" class="a-fee" oninput="calc()"></div>' +
-    '<div class="row"><label>Travel / hospitality</label><input type="number" value="0" min="0" step="50" class="a-travel" oninput="calc()"></div>';
+    '<div class="row"><label>Talent Fee</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" value="0" min="0" step="50" class="a-fee" oninput="calc()"></span></div>' +
+    '<div class="row"><label>Travel / Hospitality</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" value="0" min="0" step="50" class="a-travel" oninput="calc()"></span></div>';
   document.getElementById('artists').appendChild(div);
   calc();
 }
@@ -121,7 +174,24 @@ function removeArtist(id) {
   const idx = artists.indexOf(id);
   if (idx > -1) artists.splice(idx, 1);
   document.getElementById('artist-' + id).remove();
+  if (artists.length === 0) {
+    if (document.getElementById('lineupFields').classList.contains('open')) toggleLineup();
+    document.getElementById('lineupToggleWrap').style.display = 'none';
+    document.getElementById('addArtistBtn').style.display = '';
+  }
   calc();
+}
+
+function toggleLineup() {
+  document.getElementById('lineupFields').classList.toggle('open');
+  document.getElementById('lineupArrow').classList.toggle('open');
+}
+
+function showStaffing() {
+  document.getElementById('staffToggleWrap').style.display = '';
+  document.getElementById('addStaffBtn').style.display = 'none';
+  if (!document.getElementById('staffFields').classList.contains('open')) toggleStaff();
+  addStaff();
 }
 
 function addStaff() {
@@ -135,8 +205,8 @@ function addStaff() {
       '<input type="text" placeholder="Role" oninput="calc()">' +
       '<button class="remove-btn" onclick="removeStaff(' + id + ')">&#10005;</button>' +
     '</div>' +
-    '<div class="row"><label>Hourly rate</label><input type="number" value="0" min="0" step="5" class="st-rate" oninput="calc()"></div>' +
-    '<div class="row"><label>Hours</label><input type="number" value="0" min="0" step="1" class="st-hours" oninput="calc()"></div>';
+    '<div class="row"><label>Hourly Rate</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" value="0" min="0" step="5" class="st-rate" oninput="calc()"></span></div>' +
+    '<div class="row"><label>Team Size</label><input type="number" value="1" min="1" step="1" class="st-count" oninput="calc()"></div>';
   document.getElementById('staffList').appendChild(div);
   calc();
 }
@@ -145,7 +215,71 @@ function removeStaff(id) {
   const idx = staffMembers.indexOf(id);
   if (idx > -1) staffMembers.splice(idx, 1);
   document.getElementById('staff-' + id).remove();
+  if (staffMembers.length === 0) {
+    document.getElementById('staffingDisplay').value = 0;
+    if (document.getElementById('staffFields').classList.contains('open')) toggleStaff();
+    document.getElementById('staffToggleWrap').style.display = 'none';
+    document.getElementById('addStaffBtn').style.display = '';
+  }
   calc();
+}
+
+function removeAllStaff() {
+  staffMembers.length = 0;
+  document.getElementById('staffList').innerHTML = '';
+  document.getElementById('staffingDisplay').value = 0;
+  if (document.getElementById('staffFields').classList.contains('open')) toggleStaff();
+  document.getElementById('staffToggleWrap').style.display = 'none';
+  document.getElementById('addStaffBtn').style.display = '';
+  calc();
+}
+
+let prodStaffId = 0;
+const prodStaffMembers = [];
+
+function showProdStaff() {
+  document.getElementById('prodStaffToggleWrap').style.display = '';
+  document.getElementById('addProdStaffBtn').style.display = 'none';
+  if (!document.getElementById('prodStaffFields').classList.contains('open')) toggleProdStaff();
+  addProdStaff();
+}
+
+function addProdStaff() {
+  const id = prodStaffId++;
+  prodStaffMembers.push(id);
+  const div = document.createElement('div');
+  div.className = 'staff-entry';
+  div.id = 'pstaff-' + id;
+  div.innerHTML =
+    '<div class="staff-header">' +
+      '<input type="text" placeholder="Role" oninput="calc()">' +
+      '<button class="remove-btn" onclick="removeProdStaff(' + id + ')">&#10005;</button>' +
+    '</div>' +
+    '<div class="row"><label>Labor Fee</label><span class="currency-wrap"><span class="dollar">$</span><input type="number" value="0" min="0" step="50" class="ps-cost" oninput="calc()"></span></div>';
+  document.getElementById('prodStaffList').appendChild(div);
+  calc();
+}
+
+function removeProdStaff(id) {
+  const idx = prodStaffMembers.indexOf(id);
+  if (idx > -1) prodStaffMembers.splice(idx, 1);
+  document.getElementById('pstaff-' + id).remove();
+  if (prodStaffMembers.length === 0) {
+    if (document.getElementById('prodStaffFields').classList.contains('open')) toggleProdStaff();
+    document.getElementById('prodStaffToggleWrap').style.display = 'none';
+    document.getElementById('addProdStaffBtn').style.display = '';
+  }
+  calc();
+}
+
+function toggleProdStaff() {
+  document.getElementById('prodStaffFields').classList.toggle('open');
+  document.getElementById('prodStaffArrow').classList.toggle('open');
+}
+
+function toggleProd() {
+  document.getElementById('prodFields').classList.toggle('open');
+  document.getElementById('prodArrow').classList.toggle('open');
 }
 
 function $(id) { return parseFloat(document.getElementById(id).value) || 0; }
@@ -163,20 +297,47 @@ function calc() {
     travelTotal += travel;
     artistLines.push({ name, fee, travel });
   });
+  document.getElementById('talentFeeDisplay').textContent = fmt(talentTotal + travelTotal);
 
-  const production = $('production');
+  const audioHw = $('audioHw');
+  const visualHw = $('visualHw');
+  let prodStaffCost = 0;
+  document.querySelectorAll('#prodStaffList .staff-entry').forEach(el => {
+    prodStaffCost += parseFloat(el.querySelector('.ps-cost').value) || 0;
+  });
+  const prodHw = audioHw + visualHw;
+  const production = prodHw + prodStaffCost;
+  document.getElementById('productionDisplay').value = production;
+  document.getElementById('prodHwDisplay').textContent = fmt(prodHw);
+  document.getElementById('prodStaffDisplay').textContent = fmt(prodStaffCost);
   const venue = $('venue');
+
+  const startVal = document.getElementById('startTime').value;
+  const endVal = document.getElementById('endTime').value;
+  let eventHours = 0;
+  if (startVal && endVal) {
+    const [sh, sm] = startVal.split(':').map(Number);
+    const [eh, em] = endVal.split(':').map(Number);
+    let startMin = sh * 60 + sm;
+    let endMin = eh * 60 + em;
+    if (endMin <= startMin) endMin += 24 * 60;
+    eventHours = (endMin - startMin) / 60;
+    document.getElementById('durationNote').textContent = eventHours + ' hour' + (eventHours !== 1 ? 's' : '');
+  } else {
+    document.getElementById('durationNote').textContent = '';
+  }
+
   let staffing = 0;
-  document.querySelectorAll('.staff-entry').forEach(el => {
+  document.querySelectorAll('#staffList .staff-entry').forEach(el => {
     const rate = parseFloat(el.querySelector('.st-rate').value) || 0;
-    const hours = parseFloat(el.querySelector('.st-hours').value) || 0;
-    staffing += rate * hours;
+    const count = parseFloat(el.querySelector('.st-count').value) || 1;
+    staffing += rate * eventHours * count;
   });
   document.getElementById('staffingDisplay').value = staffing;
+  document.getElementById('staffingFeeDisplay').textContent = fmt(staffing);
   const adsWeekly = $('ads');
   const contentWeekly = $('content');
   const barMin = $('barMin');
-  const avgSpend = $('avgSpend');
   const headcount = $('headcount') || 1;
   const margin = $('margin');
 
@@ -190,7 +351,7 @@ function calc() {
     weeks = Math.max(0, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
     document.getElementById('weeksNote').textContent = weeks + ' week' + (weeks !== 1 ? 's' : '') + ' from today';
   } else {
-    document.getElementById('weeksNote').textContent = 'Set event date to calculate marketing costs';
+    document.getElementById('weeksNote').textContent = 'Set Event Date To Calculate Marketing Costs';
   }
 
   const adsCost = adsWeekly * weeks;
@@ -205,34 +366,21 @@ function calc() {
   const profit = targetRevenue - totalCost;
 
   let html = '';
-  html += line('Talent fees', talentTotal);
-  html += line('Travel / hospitality', travelTotal);
+  html += line('Talent', talentTotal + travelTotal);
   html += line('Production', production);
   html += line('Venue', venue);
-  html += line('Staffing', staffing);
-  html += line('Paid ads (' + weeks + 'wk)', adsCost);
-  html += line('Content gen (' + weeks + 'wk)', contentCost);
-  html += '<div class="line total"><span>Total costs</span><span>' + fmt(totalCost) + '</span></div>';
-  html += '<div class="line total"><span>Target revenue (' + margin + '% margin)</span><span>' + fmt(targetRevenue) + '</span></div>';
+  if (staffMembers.length > 0) html += line('Venue Staffing', staffing);
+  html += line('Paid Advertisement', adsCost);
+  html += line('Content Generation', contentCost);
+  html += '<div class="line total"><span>Total Costs</span><span>' + fmt(totalCost) + '</span></div>';
+  html += '<div class="line total"><span>Target Revenue (' + margin + '% Margin)</span><span>' + fmt(targetRevenue) + '</span></div>';
   html += '<div class="line" style="color:#aaa;margin-top:6px;"><span>Profit</span><span>' + fmt(profit) + '</span></div>';
-  html += '<div class="line ticket"><span>Ticket price</span><span>' + fmt(ticketPrice) + '</span></div>';
-  html += '<div class="note" style="margin-top:4px;">per ticket across ' + headcount + ' tickets</div>';
+  html += '<div class="line ticket"><span>Ticket Price</span><span>' + fmt(ticketPrice) + '</span></div>';
+  html += '<div class="note" style="margin-top:4px;">Per Ticket Across ' + headcount + ' Tickets</div>';
 
   if (barMin > 0) {
-    const estBarRev = headcount * avgSpend;
-    const diff = estBarRev - barMin;
-    let cls, msg;
-    if (diff >= barMin * 0.2) {
-      cls = 'bar-ok';
-      msg = 'Bar minimum likely met. Est. bar revenue: ' + fmt(estBarRev) + ' vs ' + fmt(barMin) + ' minimum (surplus ' + fmt(diff) + ').';
-    } else if (diff >= 0) {
-      cls = 'bar-warn';
-      msg = 'Bar minimum tight. Est. bar revenue: ' + fmt(estBarRev) + ' vs ' + fmt(barMin) + ' minimum (surplus only ' + fmt(diff) + ').';
-    } else {
-      cls = 'bar-bad';
-      msg = 'Bar minimum NOT met. Est. bar revenue: ' + fmt(estBarRev) + ' vs ' + fmt(barMin) + ' minimum (shortfall ' + fmt(Math.abs(diff)) + '). Need ' + Math.ceil(barMin / (avgSpend || 1)) + ' heads at $' + avgSpend + '/head.';
-    }
-    html += '<div class="bar-note ' + cls + '">' + msg + '</div>';
+    const barPerHead = barMin / headcount;
+    html += '<div class="line" style="color:#aaa;margin-top:6px;"><span>Bar Minimum Breakeven</span><span>' + fmt(barPerHead) + ' / Attendee</span></div>';
   }
 
   document.getElementById('results').innerHTML = html;
@@ -246,10 +394,7 @@ function fmt(n) {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function toggleBar() {
-  document.getElementById('barFields').classList.toggle('open');
-  document.getElementById('barArrow').classList.toggle('open');
-}
+
 
 function toggleStaff() {
   document.getElementById('staffFields').classList.toggle('open');
