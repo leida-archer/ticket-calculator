@@ -367,9 +367,9 @@ function calc() {
 
   let html = '';
   html += line('Talent', talentTotal + travelTotal);
-  html += line('Production', production);
   html += line('Venue', venue);
   if (staffMembers.length > 0) html += line('Venue Staffing', staffing);
+  html += line('Production', production);
   html += line('Paid Advertisement', adsCost);
   html += line('Content Generation', contentCost);
   html += '<div class="line total"><span>Total Costs</span><span>' + fmt(totalCost) + '</span></div>';
