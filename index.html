@@ -39,11 +39,6 @@
   .bar-toggle .arrow.open { transform: rotate(90deg); }
   .bar-fields { overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
   .bar-fields.open { max-height: 2000px; }
-  .slider-row { margin-bottom: 8px; }
-  .slider-row .top { display: flex; justify-content: space-between; margin-bottom: 4px; }
-  .slider-row label { font-size: 14px; }
-  .slider-row span { font-size: 14px; font-weight: 600; color: #fff; }
-  .slider-row input[type=range] { width: 100%; accent-color: #888; }
   .note { font-size: 12px; color: #777; margin-top: 2px; }
   .card { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
   .card h2:first-child { margin-top: 0; }
@@ -131,10 +126,7 @@
 <h2>Attendance Goal</h2>
 <div class="row"><label>Expected Headcount</label><input type="number" id="headcount" value="100" min="1" step="10" oninput="calc()"></div>
 
-<div class="slider-row" style="margin-top: 12px;">
-  <div class="top"><label>Profit Margin</label><span id="marginLabel">20%</span></div>
-  <input type="range" id="margin" min="0" max="200" value="20" step="1" oninput="calc()">
-</div>
+<div class="row"><label>Profit Margin (%)</label><input type="number" id="margin" value="20" min="0" step="1" oninput="calc()"></div>
 </div>
 </div>
 
@@ -359,7 +351,6 @@ function calc() {
   const adsCost = adsWeekly * weeks;
   const contentCost = contentWeekly * weeks;
 
-  document.getElementById('marginLabel').textContent = margin + '%';
 
   const totalCost = talentTotal + travelTotal + production + venue + staffing + adsCost + contentCost;
   const multiplier = 1 + margin / 100;

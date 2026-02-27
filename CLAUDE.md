@@ -7,7 +7,8 @@ Single-file PWA for planning music event finances. Calculates ticket prices base
 - Single `index.html` (HTML + CSS + JS, no build step)
 - PWA: `manifest.json`, `sw.js` (network-first caching), icons (192/512)
 - Dark theme (#111 background, #1a1a1a cards, #333 borders)
-- Hosted on GitHub Pages (repo: wafflegeek/ticket-calculator)
+- jsPDF 2.5.1 via CDN (PDF export, no build step)
+- Hosted on GitHub Pages (repo: leida-archer/ticket-calculator)
 
 ## Architecture
 - Two-column layout: left column (inputs), right column (sticky results)
@@ -44,6 +45,16 @@ Wrapped in `<span class="currency-wrap"><span class="dollar">$</span><input ...>
 - Cost breakdown lines, Total Costs, Target Revenue, Profit, Ticket Price (green)
 - Conditional: Bar Minimum Breakeven (if barMin > 0)
 - Conditional: Venue Staffing line (if staff added)
+- Export PDF Report button below results
+
+### PDF Export
+- Uses jsPDF 2.5.1 (CDN, `window.jspdf`)
+- `exportPDF()` generates A4 document: "Event Financial Projection"
+- Layout: green accent bars (top/bottom), header, event details, cost breakdown, total, revenue projection, ticket price
+- Cost breakdown sections: Talent, Venue (with Venue Staffing subheader), Production (with Production Staffing subheader), Marketing
+- Helpers: `sectionHead()` for bold section labels, `subHead()` for italic subsection labels, `lineItem()` for indented cost lines
+- `ensureSpace(h)` handles page breaks for long content
+- Filename: `Event_Financial_Projection_YYYY-MM-DD.pdf` (date from event date input)
 
 ## Naming Conventions
 - Title Case on all labels/headings EXCEPT `+ Add` buttons (lowercase after +)
@@ -57,7 +68,7 @@ Wrapped in `<span class="currency-wrap"><span class="dollar">$</span><input ...>
 - Ticket price = total × (1 + margin%) / headcount
 
 ## Service Worker
-- Cache name: `ticket-calc-v4` — bump version on deploy
+- Cache name: `ticket-calc-v5` — bump version on deploy
 - Network-first strategy with cache fallback
 
 ## Deployment
