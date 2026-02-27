@@ -73,10 +73,9 @@
 
 <div class="card">
 <div class="row"><label>Event Date</label><input type="date" id="eventDate" oninput="calc()"></div>
-<div class="note" id="weeksNote"></div>
 <div class="row"><label>Start Time</label><input type="time" id="startTime" value="20:00" oninput="calc()"></div>
 <div class="row"><label>End Time</label><input type="time" id="endTime" value="02:00" oninput="calc()"></div>
-<div class="note" id="durationNote"></div>
+<div class="note">Used To Calculate Marketing And Staffing Costs</div>
 </div>
 
 <div class="card">
@@ -322,9 +321,8 @@ function calc() {
     let endMin = eh * 60 + em;
     if (endMin <= startMin) endMin += 24 * 60;
     eventHours = (endMin - startMin) / 60;
-    document.getElementById('durationNote').textContent = eventHours + ' hour' + (eventHours !== 1 ? 's' : '');
   } else {
-    document.getElementById('durationNote').textContent = '';
+    eventHours = 0;
   }
 
   let staffing = 0;
@@ -349,9 +347,8 @@ function calc() {
     const eventDate = new Date(eventDateVal + 'T00:00:00');
     const diff = eventDate - today;
     weeks = Math.max(0, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
-    document.getElementById('weeksNote').textContent = weeks + ' week' + (weeks !== 1 ? 's' : '') + ' from today';
   } else {
-    document.getElementById('weeksNote').textContent = 'Set Event Date To Calculate Marketing Costs';
+    weeks = 0;
   }
 
   const adsCost = adsWeekly * weeks;
