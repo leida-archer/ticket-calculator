@@ -33,7 +33,7 @@
   .bar-toggle .arrow { font-size: 10px; margin-right: 6px; transition: transform 0.2s; }
   .bar-toggle .arrow.open { transform: rotate(90deg); }
   .bar-fields { overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
-  .bar-fields.open { max-height: 80px; }
+  .bar-fields.open { max-height: 300px; }
   .slider-row { margin-bottom: 8px; }
   .slider-row .top { display: flex; justify-content: space-between; margin-bottom: 4px; }
   .slider-row label { font-size: 14px; }
@@ -64,6 +64,15 @@
 <h2>Production Costs</h2>
 <div class="row"><label>Production (AV + staff)</label><input type="number" id="production" value="0" min="0" step="50" oninput="calc()"></div>
 <div class="row"><label>Venue fee</label><input type="number" id="venue" value="0" min="0" step="50" oninput="calc()"></div>
+<div class="bar-toggle" onclick="toggleStaff()"><span><span class="arrow" id="staffArrow">&#9654;</span>Staffing fee</span><span id="staffTotal" style="font-size:13px;color:#666;">$0.00</span></div>
+<div class="bar-fields" id="staffFields">
+  <div class="row"><label>Security</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
+  <div class="row"><label>Sound engineer</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
+  <div class="row"><label>Lighting tech</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
+  <div class="row"><label>Door / box office</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
+  <div class="row"><label>Bar staff</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
+  <div class="row"><label>Other staff</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
+</div>
 <div class="bar-toggle" onclick="toggleBar()"><span><span class="arrow" id="barArrow">&#9654;</span>Bar minimum (optional)</span></div>
 <div class="bar-fields" id="barFields">
   <div class="row"><label>Bar minimum ($)</label><input type="number" id="barMin" value="0" min="0" step="100" oninput="calc()"></div>
@@ -130,6 +139,9 @@ function calc() {
 
   const production = $('production');
   const venue = $('venue');
+  let staffing = 0;
+  document.querySelectorAll('.s-item').forEach(el => { staffing += parseFloat(el.value) || 0; });
+  document.getElementById('staffTotal').textContent = fmt(staffing);
   const adsWeekly = $('ads');
   const contentWeekly = $('content');
   const barMin = $('barMin');
@@ -155,7 +167,7 @@ function calc() {
 
   document.getElementById('marginLabel').textContent = margin + '%';
 
-  const totalCost = talentTotal + travelTotal + production + venue + adsCost + contentCost;
+  const totalCost = talentTotal + travelTotal + production + venue + staffing + adsCost + contentCost;
   const multiplier = 1 + margin / 100;
   const targetRevenue = totalCost * multiplier;
   const ticketPrice = targetRevenue / headcount;
@@ -166,6 +178,7 @@ function calc() {
   html += line('Travel / hospitality', travelTotal);
   html += line('Production', production);
   html += line('Venue', venue);
+  html += line('Staffing', staffing);
   html += line('Paid ads (' + weeks + 'wk)', adsCost);
   html += line('Content gen (' + weeks + 'wk)', contentCost);
   html += '<div class="line total"><span>Total costs</span><span>' + fmt(totalCost) + '</span></div>';
@@ -205,6 +218,11 @@ function fmt(n) {
 function toggleBar() {
   document.getElementById('barFields').classList.toggle('open');
   document.getElementById('barArrow').classList.toggle('open');
+}
+
+function toggleStaff() {
+  document.getElementById('staffFields').classList.toggle('open');
+  document.getElementById('staffArrow').classList.toggle('open');
 }
 
 if ('serviceWorker' in navigator) {
