@@ -59,12 +59,15 @@
   .bar-ok { background: #1a2e1a; color: #6c6; }
   .bar-warn { background: #2e2a1a; color: #cc6; }
   .bar-bad { background: #2e1a1a; color: #c66; }
+  .export-btn { width: 100%; margin-top: 12px; padding: 10px; background: #1a1a1a; border: 1px solid #333; color: #aaa; font-size: 14px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+  .export-btn:hover { color: #fff; border-color: #666; background: #222; }
   @media (max-width: 640px) {
     .layout { flex-direction: column; }
     .col-left, .col-right { width: 100%; }
     .col-right { position: static; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -137,6 +140,7 @@
 
 <div class="col-right">
 <div class="results" id="results"></div>
+<button class="export-btn" onclick="exportPDF()">Export PDF Report</button>
 </div>
 </div>
 
@@ -397,6 +401,306 @@ function fmt(n) {
 function toggleStaff() {
   document.getElementById('staffFields').classList.toggle('open');
   document.getElementById('staffArrow').classList.toggle('open');
+}
+
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pw = 210, ph = 297;
+  const ml = 20, mr = pw - 20;
+  let y = 0;
+
+  var accent = [22, 100, 62];
+  var darkText = [33, 33, 33];
+  var grayText = [120, 120, 120];
+  var lightRule = [200, 200, 200];
+  var darkRule = [100, 100, 100];
+
+  doc.setFillColor(accent[0], accent[1], accent[2]);
+  doc.rect(0, 0, pw, 3, 'F');
+
+  function rule(color, weight) {
+    doc.setDrawColor(color[0], color[1], color[2]);
+    doc.setLineWidth(weight || 0.3);
+    doc.line(ml, y, mr, y);
+  }
+
+  function ensureSpace(h) {
+    if (y + h > ph - 20) { doc.addPage(); y = 20; }
+  }
+
+  function fmtTime12(t) {
+    if (!t) return '\u2014';
+    var p = t.split(':').map(Number);
+    return (p[0] % 12 || 12) + ':' + String(p[1]).padStart(2, '0') + ' ' + (p[0] >= 12 ? 'PM' : 'AM');
+  }
+
+  function fmtDateLong(d) {
+    if (!d) return '\u2014';
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  // ---- Gather data ----
+  var eventDate = document.getElementById('eventDate').value;
+  var startTime = document.getElementById('startTime').value;
+  var endTime = document.getElementById('endTime').value;
+  var eventHours = 0;
+  if (startTime && endTime) {
+    var sp = startTime.split(':').map(Number), ep = endTime.split(':').map(Number);
+    var sMin = sp[0] * 60 + sp[1], eMin = ep[0] * 60 + ep[1];
+    if (eMin <= sMin) eMin += 1440;
+    eventHours = (eMin - sMin) / 60;
+  }
+
+  var talentTotal = 0, travelTotal = 0, artistData = [];
+  document.querySelectorAll('.artist').forEach(function(el) {
+    var name = el.querySelector('input[type=text]').value || 'Artist';
+    var fee = parseFloat(el.querySelector('.a-fee').value) || 0;
+    var travel = parseFloat(el.querySelector('.a-travel').value) || 0;
+    talentTotal += fee; travelTotal += travel;
+    artistData.push({ name: name, fee: fee, travel: travel });
+  });
+
+  var venueVal = $('venue'), barMin = $('barMin');
+  var staffingTotal = 0, staffData = [];
+  document.querySelectorAll('#staffList .staff-entry').forEach(function(el) {
+    var role = el.querySelector('input[type=text]').value || 'Staff';
+    var rate = parseFloat(el.querySelector('.st-rate').value) || 0;
+    var count = parseFloat(el.querySelector('.st-count').value) || 1;
+    var cost = rate * eventHours * count;
+    staffingTotal += cost;
+    staffData.push({ role: role, rate: rate, count: count, cost: cost });
+  });
+
+  var audioHw = $('audioHw'), visualHw = $('visualHw');
+  var prodStaffCost = 0, prodStaffData = [];
+  document.querySelectorAll('#prodStaffList .staff-entry').forEach(function(el) {
+    var role = el.querySelector('input[type=text]').value || 'Staff';
+    var cost = parseFloat(el.querySelector('.ps-cost').value) || 0;
+    prodStaffCost += cost;
+    prodStaffData.push({ role: role, cost: cost });
+  });
+  var prodHw = audioHw + visualHw;
+  var production = prodHw + prodStaffCost;
+
+  var adsWeekly = $('ads'), contentWeekly = $('content');
+  var weeks = 0;
+  if (eventDate) {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    weeks = Math.max(0, Math.ceil((new Date(eventDate + 'T00:00:00') - today) / 604800000));
+  }
+  var adsCost = adsWeekly * weeks;
+  var contentCost = contentWeekly * weeks;
+  var headcount = $('headcount') || 1;
+  var marginPct = $('margin');
+  var totalCost = talentTotal + travelTotal + production + venueVal + staffingTotal + adsCost + contentCost;
+  var targetRevenue = totalCost * (1 + marginPct / 100);
+  var ticketPrice = targetRevenue / headcount;
+  var profit = targetRevenue - totalCost;
+
+  // ---- HEADER ----
+  y = 18;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  doc.text('EVENT FINANCIAL PROJECTION', pw / 2, y, { align: 'center' });
+  y += 8;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('Music Event Financial Planner', pw / 2, y, { align: 'center' });
+  y += 8;
+  rule(darkRule, 0.5);
+  y += 10;
+
+  // ---- EVENT DETAILS ----
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('PREPARED', ml, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  doc.text(fmtDateLong(new Date().toISOString().split('T')[0]), ml + 26, y);
+  if (eventDate) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text('EVENT DATE', pw / 2 + 5, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    doc.text(fmtDateLong(eventDate), pw / 2 + 33, y);
+  }
+  y += 7;
+  if (startTime && endTime) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+    doc.text('EVENT TIME', ml, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    doc.text(fmtTime12(startTime) + ' \u2013 ' + fmtTime12(endTime) + '  (' + eventHours.toFixed(1) + ' hours)', ml + 26, y);
+  }
+  y += 5;
+  rule(lightRule, 0.3);
+  y += 12;
+
+  // ---- COST BREAKDOWN ----
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('COST BREAKDOWN', ml, y);
+  y += 6;
+  rule(lightRule, 0.3);
+  y += 6;
+
+  function lineItem(label, amount, indent) {
+    ensureSpace(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    doc.text(label, ml + (indent || 0), y);
+    doc.text(fmt(amount), mr, y, { align: 'right' });
+    y += 5.5;
+  }
+
+  function sectionHead(label) {
+    ensureSpace(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(label, ml, y);
+    y += 6;
+  }
+
+  function subHead(label) {
+    ensureSpace(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(label, ml + 5, y);
+    y += 5;
+  }
+
+  // Talent
+  if (artistData.length > 0) {
+    sectionHead('Talent');
+    artistData.forEach(function(a) {
+      lineItem(a.name + ' \u2014 Fee', a.fee, 5);
+      if (a.travel > 0) lineItem(a.name + ' \u2014 Travel / Hospitality', a.travel, 5);
+    });
+    y += 2;
+  }
+
+  // Venue
+  if (venueVal > 0 || barMin > 0 || staffData.length > 0) {
+    sectionHead('Venue');
+    if (venueVal > 0) lineItem('Venue Fee', venueVal, 5);
+    if (barMin > 0) lineItem('Bar Minimum', barMin, 5);
+    if (staffData.length > 0) {
+      subHead('Venue Staffing');
+      staffData.forEach(function(s) {
+        lineItem(s.role + ' (' + s.count + ' \u00d7 $' + s.rate.toFixed(0) + '/hr \u00d7 ' + eventHours.toFixed(1) + 'h)', s.cost, 5);
+      });
+    }
+    y += 2;
+  }
+
+  // Production
+  if (production > 0) {
+    sectionHead('Production');
+    if (audioHw > 0) lineItem('Audio Hardware', audioHw, 5);
+    if (visualHw > 0) lineItem('Visual Hardware', visualHw, 5);
+    if (prodStaffData.length > 0) {
+      subHead('Production Staffing');
+      prodStaffData.forEach(function(s) { lineItem(s.role, s.cost, 5); });
+    }
+    y += 2;
+  }
+
+  // Marketing
+  if (adsCost > 0 || contentCost > 0) {
+    sectionHead('Marketing (' + weeks + ' week' + (weeks !== 1 ? 's' : '') + ')');
+    if (adsCost > 0) lineItem('Paid Advertising', adsCost, 5);
+    if (contentCost > 0) lineItem('Content Generation', contentCost, 5);
+    y += 2;
+  }
+
+  // ---- TOTAL ----
+  ensureSpace(14);
+  rule(darkRule, 0.5);
+  y += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+  doc.text('TOTAL COSTS', ml, y);
+  doc.text(fmt(totalCost), mr, y, { align: 'right' });
+  y += 3;
+  rule(darkRule, 0.5);
+  y += 14;
+
+  // ---- REVENUE PROJECTION ----
+  ensureSpace(55);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('REVENUE PROJECTION', ml, y);
+  y += 6;
+  rule(lightRule, 0.3);
+  y += 7;
+
+  function projLine(label, value) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    doc.text(label, ml, y);
+    doc.text(value, mr, y, { align: 'right' });
+    y += 6.5;
+  }
+
+  projLine('Expected Headcount', headcount.toString());
+  projLine('Profit Margin', marginPct + '%');
+  projLine('Target Revenue', fmt(targetRevenue));
+  projLine('Projected Profit', fmt(profit));
+  y += 1;
+  rule(lightRule, 0.3);
+  y += 9;
+
+  // ---- TICKET PRICE ----
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(accent[0], accent[1], accent[2]);
+  doc.text('RECOMMENDED TICKET PRICE', ml, y);
+  doc.text(fmt(ticketPrice), mr, y, { align: 'right' });
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(grayText[0], grayText[1], grayText[2]);
+  doc.text('Per ticket across ' + headcount + ' expected attendees', ml, y);
+  y += 3;
+  rule(accent, 0.5);
+
+  // Bar minimum note
+  if (barMin > 0) {
+    y += 8;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(9);
+    doc.setTextColor(140, 120, 40);
+    doc.text('Note: Bar minimum breakeven is ' + fmt(barMin / headcount) + ' per attendee.', ml, y);
+  }
+
+  // ---- FOOTER ----
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(170, 170, 170);
+  var ts = new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  doc.text('Generated ' + ts + '  \u2022  Music Event Financial Planner', pw / 2, ph - 10, { align: 'center' });
+  doc.setFillColor(accent[0], accent[1], accent[2]);
+  doc.rect(0, ph - 3, pw, 3, 'F');
+
+  doc.save('Event_Financial_Projection' + (eventDate ? '_' + eventDate : '') + '.pdf');
 }
 
 if ('serviceWorker' in navigator) {
