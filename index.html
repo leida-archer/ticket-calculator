@@ -45,6 +45,10 @@
   .results .line.total { font-weight: 700; font-size: 16px; color: #fff; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; }
   .results .line.ticket { font-weight: 700; font-size: 20px; color: #4f4; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; }
   .bar-note { font-size: 12px; margin-top: 10px; padding: 8px; border-radius: 4px; }
+  .staff-entry { border-left: 2px solid #333; padding-left: 12px; margin-bottom: 10px; }
+  .staff-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .staff-header input { width: 130px; padding: 4px 8px; background: #1a1a1a; border: 1px solid #333; color: #fff; font-size: 13px; border-radius: 4px; }
+  .staff-header input:focus { outline: none; border-color: #666; }
   .bar-ok { background: #1a2e1a; color: #6c6; }
   .bar-warn { background: #2e2a1a; color: #cc6; }
   .bar-bad { background: #2e1a1a; color: #c66; }
@@ -64,19 +68,16 @@
 <h2>Production Costs</h2>
 <div class="row"><label>Production (AV + staff)</label><input type="number" id="production" value="0" min="0" step="50" oninput="calc()"></div>
 <div class="row"><label>Venue fee</label><input type="number" id="venue" value="0" min="0" step="50" oninput="calc()"></div>
-<div class="bar-toggle" onclick="toggleStaff()"><span><span class="arrow" id="staffArrow">&#9654;</span>Staffing fee</span><span id="staffTotal" style="font-size:13px;color:#666;">$0.00</span></div>
-<div class="bar-fields" id="staffFields">
-  <div class="row"><label>Security</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
-  <div class="row"><label>Sound engineer</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
-  <div class="row"><label>Lighting tech</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
-  <div class="row"><label>Door / box office</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
-  <div class="row"><label>Bar staff</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
-  <div class="row"><label>Other staff</label><input type="number" value="0" min="0" step="50" class="s-item" oninput="calc()"></div>
-</div>
 <div class="bar-toggle" onclick="toggleBar()"><span><span class="arrow" id="barArrow">&#9654;</span>Bar minimum (optional)</span></div>
 <div class="bar-fields" id="barFields">
   <div class="row"><label>Bar minimum ($)</label><input type="number" id="barMin" value="0" min="0" step="100" oninput="calc()"></div>
   <div class="row"><label>Avg spend per head ($)</label><input type="number" id="avgSpend" value="25" min="0" step="1" oninput="calc()"></div>
+</div>
+<div class="row"><label>Staffing fee</label><input type="number" id="staffingDisplay" value="0" min="0" readonly style="color:#777;cursor:default;"></div>
+<div class="bar-toggle" onclick="toggleStaff()"><span><span class="arrow" id="staffArrow">&#9654;</span>Staff breakdown</span></div>
+<div class="bar-fields" id="staffFields">
+  <div id="staffList"></div>
+  <button class="add-btn" onclick="addStaff()" style="margin-bottom:8px;">+ Add staff</button>
 </div>
 
 <h2>Marketing</h2>
@@ -96,6 +97,8 @@
 <script>
 let artistId = 0;
 const artists = [];
+let staffId = 0;
+const staffMembers = [];
 
 function addArtist() {
   const id = artistId++;
@@ -121,6 +124,30 @@ function removeArtist(id) {
   calc();
 }
 
+function addStaff() {
+  const id = staffId++;
+  staffMembers.push(id);
+  const div = document.createElement('div');
+  div.className = 'staff-entry';
+  div.id = 'staff-' + id;
+  div.innerHTML =
+    '<div class="staff-header">' +
+      '<input type="text" placeholder="Role" oninput="calc()">' +
+      '<button class="remove-btn" onclick="removeStaff(' + id + ')">&#10005;</button>' +
+    '</div>' +
+    '<div class="row"><label>Hourly rate</label><input type="number" value="0" min="0" step="5" class="st-rate" oninput="calc()"></div>' +
+    '<div class="row"><label>Hours</label><input type="number" value="0" min="0" step="1" class="st-hours" oninput="calc()"></div>';
+  document.getElementById('staffList').appendChild(div);
+  calc();
+}
+
+function removeStaff(id) {
+  const idx = staffMembers.indexOf(id);
+  if (idx > -1) staffMembers.splice(idx, 1);
+  document.getElementById('staff-' + id).remove();
+  calc();
+}
+
 function $(id) { return parseFloat(document.getElementById(id).value) || 0; }
 
 function calc() {
@@ -140,8 +167,12 @@ function calc() {
   const production = $('production');
   const venue = $('venue');
   let staffing = 0;
-  document.querySelectorAll('.s-item').forEach(el => { staffing += parseFloat(el.value) || 0; });
-  document.getElementById('staffTotal').textContent = fmt(staffing);
+  document.querySelectorAll('.staff-entry').forEach(el => {
+    const rate = parseFloat(el.querySelector('.st-rate').value) || 0;
+    const hours = parseFloat(el.querySelector('.st-hours').value) || 0;
+    staffing += rate * hours;
+  });
+  document.getElementById('staffingDisplay').value = staffing;
   const adsWeekly = $('ads');
   const contentWeekly = $('content');
   const barMin = $('barMin');
